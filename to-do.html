@@ -1,0 +1,518 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Next-Level To-Do — HWAKEYE</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg-1: #081226;
+    --bg-2: #071827;
+    --card: #071e2b;
+    --muted: #9db3c7;
+    --glass: rgba(255,255,255,0.03);
+    --accent: #ff3b6b;   /* bold pink */
+    --accent-2:#1b9fff;  /* electric blue */
+    --success:#2bd18b;
+    --danger:#ff6b6b;
+    --radius:14px;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{
+    margin:0;font-family:Inter,system-ui,Arial;color:#e8f6ff;
+    background: linear-gradient(180deg,var(--bg-1) 0%, #041425 70%);
+    -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale;
+    padding:28px;
+  }
+
+  .wrap{max-width:1200px;margin:0 auto;display:grid;grid-template-columns:320px 1fr;gap:22px;align-items:start}
+  /* LEFT: sidebar */
+  .sidebar{
+    background:linear-gradient(180deg, rgba(255,255,255,0.02), transparent);
+    border-radius:var(--radius); padding:18px; border:1px solid rgba(255,255,255,0.03);
+    position:sticky; top:28px; height:calc(100vh - 56px); overflow:auto;
+  }
+  .logo{display:flex;gap:12px;align-items:center}
+  .logo .mark{width:56px;height:56px;border-radius:12px;background:linear-gradient(135deg,var(--accent),var(--accent-2));display:grid;place-items:center;font-weight:800;color:#04121a}
+  .logo h1{margin:0;font-size:18px}
+  .logo p{margin:2px 0 0 0;color:var(--muted);font-size:13px}
+
+  .controls{margin-top:18px;display:flex;flex-direction:column;gap:12px}
+  .search{display:flex;gap:10px;align-items:center;background:var(--glass);padding:10px;border-radius:12px}
+  .search input{background:transparent;border:0;outline:none;color:inherit;width:100%}
+  .btn{background:var(--accent);border:0;padding:10px 12px;border-radius:10px;color:#04121a;font-weight:800;cursor:pointer}
+  .btn.secondary{background:transparent;border:1px solid rgba(255,255,255,0.04);color:var(--muted);font-weight:600}
+
+  .filters{display:flex;flex-direction:column;gap:8px;margin-top:12px}
+  .chip{padding:8px 10px;border-radius:10px;background:rgba(255,255,255,0.02);cursor:pointer;border:1px solid rgba(255,255,255,0.02);color:var(--muted)}
+  .chip.active{background:linear-gradient(90deg,var(--accent),var(--accent-2));color:#04121a;font-weight:800;box-shadow:0 10px 30px rgba(27,159,255,0.06)}
+
+  .stats{margin-top:18px;padding:12px;border-radius:12px;background:linear-gradient(180deg, rgba(255,255,255,0.01), transparent);border:1px solid rgba(255,255,255,0.03)}
+  .stat-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+  .muted{color:var(--muted)}
+
+  /* RIGHT: main area */
+  .main{
+    min-height:80vh;
+  }
+  .header{
+    display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:16px;
+  }
+  .title{font-size:24px;font-weight:800;letter-spacing:-0.5px}
+  .subtitle{color:var(--muted);font-size:13px;margin-top:6px}
+
+  .board{
+    display:grid;grid-template-columns:repeat(3,1fr);gap:18px;
+  }
+
+  .col{
+    background:linear-gradient(180deg, rgba(255,255,255,0.02), transparent);
+    border-radius:12px;padding:14px;border:1px solid rgba(255,255,255,0.03);min-height:380px;
+  }
+  .col h3{margin:0 0 10px 0;font-size:16px}
+  .empty{opacity:.5;color:var(--muted);font-size:13px;margin-top:12px}
+
+  /* task card */
+  .task{
+    background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+    border-radius:12px;overflow:hidden;margin-bottom:12px;border:1px solid rgba(255,255,255,0.03);
+    transition:transform .18s ease, box-shadow .18s; cursor:grab;
+    display:flex;flex-direction:column;
+  }
+  .task:active{cursor:grabbing}
+  .task:hover{transform:translateY(-6px);box-shadow:0 20px 60px rgba(2,6,23,0.6)}
+  .task .img{height:120px;background-size:cover;background-position:center}
+  .task .body{padding:12px}
+  .task .title{font-weight:700;margin:0}
+  .task .meta{display:flex;align-items:center;justify-content:space-between;margin-top:8px}
+  .badge{padding:6px 8px;border-radius:999px;font-weight:800;font-size:12px}
+  .badge.low{background:rgba(139,195,74,0.18);color:#dff7de}
+  .badge.medium{background:rgba(255,193,7,0.14);color:#ffeec9}
+  .badge.high{background:rgba(255,90,95,0.12);color:#ffdfe0}
+  .small-muted{color:var(--muted);font-size:13px;margin-top:8px}
+
+  .task .actions{display:flex;gap:8px;margin-top:12px;align-items:center}
+  .icon-btn{background:transparent;border:1px solid rgba(255,255,255,0.03);color:var(--muted);padding:8px;border-radius:8px;cursor:pointer}
+
+  /* quick add floating */
+  .quick-add{position:fixed;right:36px;bottom:36px;background:linear-gradient(135deg,var(--accent),var(--accent-2));width:64px;height:64px;border-radius:16px;display:grid;place-items:center;color:#04121a;font-weight:900;box-shadow:0 30px 80px rgba(27,159,255,0.12);cursor:pointer;z-index:40}
+  .svg-ic{width:18px;height:18px;fill:#04121a}
+
+  /* modal */
+  .overlay{position:fixed;inset:0;background:rgba(1,6,12,0.6);display:none;align-items:center;justify-content:center;z-index:200}
+  .overlay.open{display:flex}
+  .modal{width:720px;max-width:96%;background:#061522;border-radius:12px;padding:18px;border:1px solid rgba(255,255,255,0.03)}
+  .form-row{display:flex;gap:12px;margin-bottom:12px}
+  input,select,textarea{background:transparent;border:1px solid rgba(255,255,255,0.03);padding:10px;border-radius:8px;color:inherit;width:100%;outline:none}
+  textarea{min-height:90px;resize:vertical}
+
+  /* small responsive */
+  @media (max-width:980px){
+    .wrap{grid-template-columns:1fr; padding:16px}
+    .sidebar{order:2;position:static;height:auto}
+    .quick-add{right:18px;bottom:18px}
+    .board{grid-template-columns:1fr}
+  }
+</style>
+</head>
+<body>
+  <div class="wrap" id="app">
+    <!-- Sidebar -->
+    <aside class="sidebar" aria-label="Sidebar">
+      <div class="logo">
+        <div class="mark">HW</div>
+        <div>
+          <h1>HWA To-Do</h1>
+          <p>Design-forward task manager</p>
+        </div>
+      </div>
+
+      <div class="controls">
+        <div class="search" role="search">
+          <svg width="16" height="16" viewBox="0 0 24 24" style="opacity:.9"><path d="M21 21l-4.35-4.35" stroke="white" stroke-width="1.4" stroke-linecap="round"/></svg>
+          <input id="q" placeholder="Search tasks..." oninput="applyFilters()">
+        </div>
+
+        <div style="display:flex;gap:8px">
+          <button class="btn" onclick="openAdd()">Add Task</button>
+          <button class="btn secondary" onclick="clearAll()">Clear</button>
+        </div>
+
+        <div class="filters">
+          <div><strong class="muted">Views</strong></div>
+          <div id="viewAll" class="chip active" onclick="setView('all')">All tasks</div>
+          <div id="viewActive" class="chip" onclick="setView('active')">Active</div>
+          <div id="viewDone" class="chip" onclick="setView('done')">Completed</div>
+        </div>
+
+        <div style="margin-top:12px" class="filters">
+          <div><strong class="muted">Priority</strong></div>
+          <div class="chip" onclick="setPriorityFilter('all')">All</div>
+          <div class="chip" onclick="setPriorityFilter('low')">Low</div>
+          <div class="chip" onclick="setPriorityFilter('medium')">Medium</div>
+          <div class="chip" onclick="setPriorityFilter('high')">High</div>
+        </div>
+
+        <div class="stats">
+          <div class="stat-row"><div class="muted">Total</div><div id="statTotal">0</div></div>
+          <div class="stat-row"><div class="muted">Active</div><div id="statActive">0</div></div>
+          <div class="stat-row"><div class="muted">Completed</div><div id="statDone">0</div></div>
+        </div>
+
+      </div>
+    </aside>
+
+    <!-- Main -->
+    <main class="main" role="main">
+      <div class="header">
+        <div>
+          <div class="title">Your Tasks</div>
+          <div class="subtitle">Organize with style • drag & drop to reorder • images make tasks memorable</div>
+        </div>
+        <div style="display:flex;gap:10px;align-items:center">
+          <div class="muted">Sort:</div>
+          <select id="sort" onchange="applyFilters()">
+            <option value="custom">Custom</option>
+            <option value="new">Newest</option>
+            <option value="priority">Priority</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="board" id="board">
+        <section class="col" id="col-todo" data-status="todo">
+          <h3>To do</h3>
+          <div id="list-todo"></div>
+        </section>
+        <section class="col" id="col-inprogress" data-status="inprogress">
+          <h3>In progress</h3>
+          <div id="list-inprogress"></div>
+        </section>
+        <section class="col" id="col-done" data-status="done">
+          <h3>Done</h3>
+          <div id="list-done"></div>
+        </section>
+      </div>
+    </main>
+  </div>
+
+  <div class="quick-add" title="Add task" onclick="openAdd()"><svg class="svg-ic" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" stroke="#04121a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+
+  <!-- modal -->
+  <div class="overlay" id="overlay" aria-hidden="true">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+      <h2 id="modalTitle">Add Task</h2>
+      <div style="margin-top:10px">
+        <div class="form-row">
+          <input id="tTitle" placeholder="Task title">
+          <select id="tPriority">
+            <option value="low">Low</option>
+            <option value="medium" selected>Medium</option>
+            <option value="high">High</option>
+          </select>
+        </div>
+        <div class="form-row">
+          <input id="tImage" placeholder="Image URL (optional)" />
+        </div>
+        <div>
+          <textarea id="tDesc" placeholder="Add notes or description..."></textarea>
+        </div>
+
+        <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px">
+          <button class="ghost" onclick="closeAdd()">Cancel</button>
+          <button class="btn" onclick="saveTask()">Save Task</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+<script>
+  /* ===== Simple storage + state ===== */
+  const STORAGE_KEY = 'hw_todos_v1';
+  let tasks = [];
+  let activeView = 'all';
+  let priorityFilter = 'all';
+
+  // demo images (Unsplash)
+  const IMAGES = [
+    'https://images.unsplash.com/photo-1543163521-1bf539d6c2f2?q=80&w=1600&auto=format&fit=crop',
+    'https://images.unsplash.com/photo-1523275335684-37898b6baf30?q=80&w=1600&auto=format&fit=crop',
+    'https://images.unsplash.com/photo-1526318472351-c75fcf070201?q=80&w=1600&auto=format&fit=crop',
+    'https://images.unsplash.com/photo-1503602642458-232111445657?q=80&w=1600&auto=format&fit=crop',
+    'https://images.unsplash.com/photo-1498050108023-c5249f4df085?q=80&w=1600&auto=format&fit=crop'
+  ];
+
+  // load or seed
+  function load(){
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if(raw){
+      try{ tasks = JSON.parse(raw); }catch(e){ tasks = []; }
+    } else {
+      // seed with some eye-catching tasks
+      tasks = [
+        make('Launch weekend promo', 'Design and post the weekend 20% promo', 'high', IMAGES[0], 'todo'),
+        make('Reorder TrailGuard stock', 'Only 3 left — order 50 pairs', 'medium', IMAGES[1], 'todo'),
+        make('Staff schedule', 'Prepare July rota', 'low', IMAGES[2], 'inprogress'),
+        make('Update product photos', 'Replace hero pics on site', 'medium', IMAGES[3], 'todo'),
+        make('Customer feedback review', 'Summarize last month', 'low', IMAGES[4], 'done'),
+      ];
+      save();
+    }
+  }
+
+  function make(title, desc='', priority='medium', image='', status='todo'){
+    return {
+      id: 't_' + Math.random().toString(36).slice(2,9),
+      title: title || 'Untitled',
+      desc: desc || '',
+      priority,
+      image: image || IMAGES[Math.floor(Math.random()*IMAGES.length)],
+      created: Date.now(),
+      status,
+      done: status === 'done'
+    };
+  }
+
+  function save(){
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks));
+    render();
+  }
+
+  /* ===== Rendering ===== */
+  function render(){
+    // clear lists
+    document.getElementById('list-todo').innerHTML = '';
+    document.getElementById('list-inprogress').innerHTML = '';
+    document.getElementById('list-done').innerHTML = '';
+
+    // Apply search + filters + sort
+    const q = (document.getElementById('q').value || '').toLowerCase().trim();
+    let list = tasks.slice();
+
+    if(activeView === 'active') list = list.filter(t => !t.done);
+    if(activeView === 'done') list = list.filter(t => t.done);
+
+    if(priorityFilter !== 'all') list = list.filter(t => t.priority === priorityFilter);
+
+    if(q) list = list.filter(t => (t.title + ' ' + t.desc).toLowerCase().includes(q));
+
+    const sortVal = document.getElementById('sort').value;
+    if(sortVal === 'new') list.sort((a,b)=>b.created - a.created);
+    else if(sortVal === 'priority') list.sort((a,b)=>priorityScore(b) - priorityScore(a));
+    // else custom preserves order (which is current order in array)
+
+    // Append to columns
+    list.forEach(t => {
+      const el = taskCard(t);
+      const col = t.status === 'done' ? 'list-done' : (t.status === 'inprogress' ? 'list-inprogress' : 'list-todo');
+      document.getElementById(col).appendChild(el);
+    });
+
+    // stats
+    document.getElementById('statTotal').textContent = tasks.length;
+    document.getElementById('statActive').textContent = tasks.filter(t=>!t.done).length;
+    document.getElementById('statDone').textContent = tasks.filter(t=>t.done).length;
+
+    // attach drag listeners to all task elements
+    attachDrag();
+  }
+
+  function priorityScore(t){
+    return t.priority === 'high' ? 3 : (t.priority === 'medium' ? 2 : 1);
+  }
+
+  function taskCard(t){
+    const div = document.createElement('div');
+    div.className = 'task';
+    div.draggable = true;
+    div.dataset.id = t.id;
+    div.innerHTML = `
+      <div class="img" style="background-image:url('${t.image}')"></div>
+      <div class="body">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start">
+          <div style="max-width:70%">
+            <div class="title">${escapeHtml(t.title)}</div>
+            <div class="small-muted">${escapeHtml(t.desc)}</div>
+          </div>
+          <div>
+            <div class="badge ${t.priority}">${t.priority.toUpperCase()}</div>
+          </div>
+        </div>
+        <div class="meta">
+          <div class="muted small">${new Date(t.created).toLocaleString()}</div>
+          <div style="display:flex;gap:8px;align-items:center">
+            <button class="icon-btn" title="Toggle done" onclick="toggleDone(event,'${t.id}')">${t.done ? '✅' : '⬜'}</button>
+            <button class="icon-btn" title="Edit" onclick="editTask(event,'${t.id}')">✏️</button>
+            <button class="icon-btn" title="Delete" onclick="deleteTask(event,'${t.id}')">🗑️</button>
+          </div>
+        </div>
+      </div>
+    `;
+    return div;
+  }
+
+  function escapeHtml(s){ return (s||'').toString().replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+  /* ===== Drag & Drop (columns) ===== */
+  function attachDrag(){
+    const cards = document.querySelectorAll('.task');
+    cards.forEach(c=>{
+      c.addEventListener('dragstart', (e)=>{
+        e.dataTransfer.setData('text/plain', c.dataset.id);
+        c.classList.add('dragging');
+      });
+      c.addEventListener('dragend', ()=>{
+        c.classList.remove('dragging');
+      });
+    });
+
+    const cols = document.querySelectorAll('.col');
+    cols.forEach(col=>{
+      col.addEventListener('dragover', (e)=>{
+        e.preventDefault();
+        col.classList.add('dragover');
+        const after = getDragAfterElement(col, e.clientY);
+        const draggedId = document.querySelector('.dragging')?.dataset?.id;
+        // show insertion indicator by moving placeholder
+      });
+      col.addEventListener('dragleave', ()=>col.classList.remove('dragover'));
+      col.addEventListener('drop', (e)=>{
+        e.preventDefault();
+        col.classList.remove('dragover');
+        const id = e.dataTransfer.getData('text/plain');
+        const newStatus = col.dataset.status;
+        moveTaskTo(id, newStatus);
+      });
+    });
+  }
+
+  function getDragAfterElement(container, y){
+    const draggableElements = [...container.querySelectorAll('.task:not(.dragging)')];
+    return draggableElements.reduce((closest, child) => {
+      const box = child.getBoundingClientRect();
+      const offset = y - box.top - box.height/2;
+      if(offset < 0 && offset > closest.offset){
+        return {offset, element: child};
+      } else {
+        return closest;
+      }
+    }, {offset: Number.NEGATIVE_INFINITY}).element;
+  }
+
+  function moveTaskTo(id, status){
+    const idx = tasks.findIndex(t => t.id === id);
+    if(idx === -1) return;
+    tasks[idx].status = status;
+    tasks[idx].done = (status === 'done');
+    // move to end of that status group: remove and push
+    const [item] = tasks.splice(idx,1);
+    tasks.push(item);
+    save();
+  }
+
+  /* ===== Actions: toggle, add, edit, delete ===== */
+  function toggleDone(e, id){
+    e.stopPropagation();
+    const t = tasks.find(x=>x.id===id);
+    if(!t) return;
+    t.done = !t.done;
+    t.status = t.done ? 'done' : 'todo';
+    save();
+  }
+
+  function deleteTask(e, id){
+    e.stopPropagation();
+    if(!confirm('Delete this task?')) return;
+    tasks = tasks.filter(x=>x.id !== id);
+    save();
+  }
+
+  // modal controls
+  function openAdd(){
+    document.getElementById('overlay').classList.add('open');
+    document.getElementById('tTitle').value = '';
+    document.getElementById('tDesc').value = '';
+    document.getElementById('tImage').value = '';
+    document.getElementById('tPriority').value = 'medium';
+    document.getElementById('overlay').dataset.editId = '';
+  }
+  function closeAdd(){
+    document.getElementById('overlay').classList.remove('open');
+  }
+  function saveTask(){
+    const title = document.getElementById('tTitle').value.trim();
+    if(!title){ alert('Please add a title'); return; }
+    const desc = document.getElementById('tDesc').value.trim();
+    const img = document.getElementById('tImage').value.trim() || IMAGES[Math.floor(Math.random()*IMAGES.length)];
+    const priority = document.getElementById('tPriority').value;
+    const editId = document.getElementById('overlay').dataset.editId;
+    if(editId){
+      const t = tasks.find(x=>x.id===editId);
+      if(t){ t.title = title; t.desc = desc; t.priority = priority; t.image = img; }
+    } else {
+      tasks.push(make(title, desc, priority, img, 'todo'));
+    }
+    closeAdd();
+    save();
+  }
+
+  function editTask(e, id){
+    e.stopPropagation();
+    const t = tasks.find(x=>x.id===id);
+    if(!t) return;
+    openAdd();
+    document.getElementById('tTitle').value = t.title;
+    document.getElementById('tDesc').value = t.desc;
+    document.getElementById('tImage').value = t.image;
+    document.getElementById('tPriority').value = t.priority;
+    document.getElementById('overlay').dataset.editId = id;
+  }
+
+  /* ===== Filters and sort ===== */
+  function setView(v){
+    activeView = v;
+    document.querySelectorAll('#app .chip').forEach(c=>c.classList.remove('active'));
+    if(v === 'all') document.getElementById('viewAll').classList.add('active');
+    else if(v === 'active') document.getElementById('viewActive').classList.add('active');
+    else if(v === 'done') document.getElementById('viewDone').classList.add('active');
+    applyFilters();
+  }
+  function setPriorityFilter(p){
+    priorityFilter = p;
+    document.querySelectorAll('.filters .chip').forEach(c=>c.classList.remove('active'));
+    // find the chip with innerText match (simple)
+    document.querySelectorAll('.filters .chip').forEach(ch=>{
+      if(ch.textContent.trim().toLowerCase() === (p==='all' ? 'all' : p)) ch.classList.add('active');
+    });
+    applyFilters();
+  }
+
+  function applyFilters(){
+    render();
+  }
+
+  function clearAll(){
+    if(!confirm('Clear all tasks?')) return;
+    tasks = [];
+    save();
+  }
+
+  /* ===== util: search / keyboard ===== */
+  document.getElementById('q').addEventListener('keydown', (e)=>{ if(e.key === 'Escape'){ e.target.value=''; applyFilters(); }});
+  document.addEventListener('keydown', (e)=>{ if(e.key === 'n' && (e.ctrlKey || e.metaKey)){ e.preventDefault(); openAdd(); } });
+
+  /* init */
+  load();
+  render();
+
+  // Close modal on outside click or ESC
+  document.getElementById('overlay').addEventListener('click', (e)=>{
+    if(e.target.id === 'overlay') closeAdd();
+  });
+  document.addEventListener('keydown', (e)=>{ if(e.key === 'Escape') closeAdd(); });
+
+</script>
+</body>
+</html>
